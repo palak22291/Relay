@@ -127,7 +127,7 @@ function Register() {
               color="textPrimary"
             
 
-              >
+              > 
                 First Name
                 </Typography>
               <TextField
@@ -141,6 +141,15 @@ function Register() {
               />
             </Grid>
             <Grid item xs={12} sm={6}>
+            <Typography
+              variant='body1'
+              textAlign='center'
+              color="textPrimary"
+            
+
+              > 
+                Last Name
+                </Typography>
               <TextField
                 fullWidth
                 label="Last Name"
