@@ -34,16 +34,30 @@ exports.getAllPosts = async (req, res) => {
     const limit = parseInt(req.query.limit) || 5;
     const search = req.query.search || "";
     const skip = (page - 1) * limit;
+    const category = req.query.category || "" ;
+    const published= req.query.published 
 
-    // now we will fecth posts with pagination and search
+    // filtering 
 
+    const filterConditions={
+      AND:[
+        search ?{
+          OR:[
+            {title:{contains:search}},
+            {content:{contains:search}}
+          ]
+
+        } : {},
+        category ? {category: category} :{},
+        published !== undefined ? {published: published === "true"} : {}
+
+      ]
+    }
+
+
+      // now we will fecth posts with pagination and search
     const posts = await prisma.post.findMany({
-      where: {
-        OR: [
-          { title: { contains: search } },
-          { content: { contains: search} },
-        ],
-      },
+      where: filterConditions,
       include: {
         author: {
           select: {
@@ -64,12 +78,7 @@ exports.getAllPosts = async (req, res) => {
     // Without count, you only get the current page’s posts and cannot know how many pages exist in total.
 
     const totalPosts = await prisma.post.count({
-      where: {
-        OR: [
-          { title: { contains: search} },
-          { content: { contains: search} },
-        ],
-      },
+      where: filterConditions
     });
     res.json({
       page,

@@ -38,7 +38,7 @@ model Post {
   updatedAt DateTime @updatedAt
 }
 
-model comment {
+model Comment {
 
    id        Int      @id @default(autoincrement())
   content   String
@@ -50,7 +50,7 @@ model comment {
 
 }
 
-model like{
+model Like{
    id       Int  @id @default(autoincrement())
   userId   Int
   postId   Int
