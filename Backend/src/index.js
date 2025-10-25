@@ -6,6 +6,7 @@ dotenv.config();
 
 const authRoutes = require("./Routes/authRoutes");
 const postRoutes= require("./Routes/postRoutes")
+const likeRoutes = require("./Routes/likeRoutes")
 
 const app = express();
 app.use(cors());
@@ -17,6 +18,7 @@ app.use("/api/auth", authRoutes);
 // very imp lin this will decide what will be our api endpoint
 // “For any request that starts with /api/auth, use the routes defined inside authRoutes file.”
 app.use("/api/posts",postRoutes)
+app.use("/api/likes", likeRoutes)
 
 app.get("/", (req, res) => res.send("API is running 🚀"));
 
