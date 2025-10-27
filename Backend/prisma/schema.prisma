@@ -1,6 +1,6 @@
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -18,18 +18,18 @@ model User {
   comments  Comment[]
   likes     Like[]
 
-  // Self-relation for followers/following
+  
   followers Follower[] @relation("Followers")
   following Follower[] @relation("Following")
 }
 
 model Follower {
   id          Int  @id @default(autoincrement())
-  followerId  Int
-  followingId Int
+  followerId  Int  
+  followingId Int 
 
-  follower   User @relation("Following", fields: [followerId], references: [id])
-  following  User @relation("Followers", fields: [followingId], references: [id])
+  follower   User @relation("Following", fields: [followerId], references: [id])  // I follow others
+  following  User @relation("Followers", fields: [followingId], references: [id]) // others follow me
 
   @@unique([followerId, followingId])
 }
