@@ -1,3 +1,4 @@
+import axiosInstance from "../utils/axiosInstance";
 import React, { useState } from "react";
 import {
   Box,
@@ -8,6 +9,7 @@ import {
   Alert,
   CircularProgress,
 } from "@mui/material";
+import axiosInstance from "../utils/axiosInstance";
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -54,10 +56,8 @@ function Register() {
     setMessage("");
 
     try {
-      const response = await fetch("http://localhost:5000/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const response = await  axiosInstance.post("/auth/register",formData)
+       
           firstName: formData.firstName,
           lastName: formData.lastName,
           email: formData.email,
