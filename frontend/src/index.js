@@ -4,11 +4,23 @@ import './index.css';
 import App from './App';
 
 import reportWebVitals from './reportWebVitals';
+import { ThemeProvider, CssBaseline } from "@mui/material";
+import darkTheme from './theme';
+import { GoogleOAuthProvider } from '@react-oauth/google';
+
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
+
   <React.StrictMode>
-    <App />
+    <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}>
+
+    <ThemeProvider theme ={darkTheme}>
+      <CssBaseline/>
+      <App />
+
+    </ThemeProvider>
+    </GoogleOAuthProvider>
   </React.StrictMode>
 );
 
