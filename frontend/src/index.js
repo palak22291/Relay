@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
 import './index.css';
 import App from './App';
 
@@ -15,6 +16,7 @@ console.log("🔍 Google Client ID loaded from env:", process.env.REACT_APP_GOOG
 root.render(
 
   <React.StrictMode>
+    <BrowserRouter>
     <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}>
 
     <ThemeProvider theme ={darkTheme}>
@@ -23,6 +25,7 @@ root.render(
 
     </ThemeProvider>
     </GoogleOAuthProvider>
+</BrowserRouter>
   </React.StrictMode>
 );
 
