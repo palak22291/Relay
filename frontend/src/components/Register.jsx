@@ -569,7 +569,7 @@ import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 
 import { GoogleLogin } from "@react-oauth/google";
-import { jwtDecode } from "jwt-decode";
+// import { jwtDecode } from "jwt-decode";
 
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -671,8 +671,8 @@ export default function Register() {
       const token = credentialResponse?.credential;
       if (!token) throw new Error("No credential token received from Google");
 
-      const decoded = jwtDecode(token);
-      const res = await axiosInstance.post("/auth/google", { token });
+      // const decoded = jwtDecode(token);
+      // const res = await axiosInstance.post("/auth/google", { token });
 
       setSeverity("success");
       setServerMessage("Google sign-in successful!");
