@@ -13,7 +13,14 @@ const userRoutes = require("./Routes/userRoutes");
 
 
 const app = express();
-app.use(cors());
+app.use(
+    cors({
+      origin: "https://connectify-palaks-projects-63c6e26a.vercel.app",
+      methods: ["GET", "POST", "PUT", "DELETE"],
+      credentials: true,
+    })
+  );
+  
 app.use(express.json());
 
 

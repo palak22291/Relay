@@ -5,6 +5,7 @@ import {jwtDecode }from "jwt-decode";
 import { Box, Button, TextField, Typography, Link } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
+import axiosInstance from "../utils/axiosInstance";
 const Login = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -14,7 +15,7 @@ const Login = () => {
     console.log("🌍 Frontend loaded at:", window.location.origin);
   }, []);
 
-  // 🔹 Handle normal email/password login
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -24,14 +25,14 @@ const Login = () => {
       );
       console.log("✅ Login success:", res.data);
       localStorage.setItem("token", res.data.token);
-      navigate("/home"); // redirect after login
+      navigate("/home");
     } catch (err) {
       console.error("❌ Login failed:", err.response?.data || err);
       alert("Invalid credentials!");
     }
   };
 
-  // 🔹 Handle Google login
+ 
   const handleGoogleSuccess = async (credentialResponse) => {
     console.log("🔹 Google credential response:", credentialResponse);
     try {
