@@ -43,7 +43,7 @@
 // 
 
 const jwt = require("jsonwebtoken");
-const { verifyToken } = require("../Utils/jwt"); // your custom verifyToken function
+const { verifyToken } = require("../Utils/jwt"); 
 
 module.exports = function (req, res, next) {
   const token = req.headers["authorization"]?.split(" ")[1];
@@ -59,7 +59,7 @@ module.exports = function (req, res, next) {
     if (!decoded) {
       return res.status(401).json({ error: "Token is invalid or expired" });
     }
-    req.user = decoded; // ✅ attach decoded user info to req.user
+    req.user = decoded; // attach decoded user info to req.user
     next();
   } catch (err) {
     console.error("Auth Middleware Error:", err);
