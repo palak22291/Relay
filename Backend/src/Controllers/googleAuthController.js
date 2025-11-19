@@ -5,16 +5,16 @@ const { generateToken } = require("../Utils/jwt");
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 exports.googleAuth = async (req, res) => {
-  console.log("🟣 Incoming Google auth request...");
+  console.log(" Incoming Google auth request...");
   try {
     const { token } = req.body;
-    console.log("📥 Received token:", token ? "✅ Yes" : "❌ No");
+    console.log("📥 Received token:", token ? " Yes" : " No");
 
     if (!token) {
       return res.status(400).json({ error: "No token provided" });
     }
 
-    // Verify token with Google
+    
     console.log("🔍 Verifying token with Google...");
     const ticket = await client.verifyIdToken({
       idToken: token,
@@ -22,7 +22,7 @@ exports.googleAuth = async (req, res) => {
     });
 
     const payload = ticket.getPayload();
-    console.log("✅ Google verification success:", payload.email);
+    console.log(" Google verification success:", payload.email);
 
     const { email, name, picture } = payload;
 
@@ -30,7 +30,7 @@ exports.googleAuth = async (req, res) => {
     let user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
-      console.log("🆕 Creating new Google user:", email);
+      console.log(" Creating new Google user:", email);
       user = await prisma.user.create({
         data: {
           firstName: name?.split(" ")[0] || "",
@@ -42,11 +42,11 @@ exports.googleAuth = async (req, res) => {
         },
       });
     } else {
-      console.log("👤 Existing user found:", email);
+      console.log(" Existing user found:", email);
     }
 
     const jwtToken = generateToken({ userId: user.id, email: user.email });
-    console.log("🔑 JWT generated for user:", user.email);
+    console.log(" JWT generated for user:", user.email);
 
     res.json({
       message: "Google authentication successful",
@@ -59,7 +59,7 @@ exports.googleAuth = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("❌ Google Auth Error:", err);
+    console.error(" Google Auth Error:", err);
     res.status(500).json({ error: "Google authentication failed" });
   }
 };
