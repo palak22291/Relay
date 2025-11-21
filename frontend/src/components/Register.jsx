@@ -129,7 +129,7 @@ export default function Register() {
       const token = credentialResponse?.credential;
       if (!token) throw new Error("No credential token received");
   
-      const res = await axiosInstance.post("/google", { token });
+      const res = await axiosInstance.post("/auth/google", { token });
   
       localStorage.setItem("authToken", res.data.token);
   
