@@ -14,7 +14,7 @@ import { useNavigate } from "react-router-dom";
 
 export default function CreatePost() {
   const navigate = useNavigate();
-  
+
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [imageUrl, setImageUrl] = useState("");
@@ -23,25 +23,57 @@ export default function CreatePost() {
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
-    setLoading(true);
     setMessage(null);
 
+    // simple frontend validation
+    if (!title.trim() || !content.trim()) {
+      setSeverity("error");
+      setMessage("Title and content are required.");
+      return;
+    }
+
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      setSeverity("error");
+      setMessage("You must be logged in to create a post.");
+      return;
+    }
+
     try {
-      const token = localStorage.getItem("authToken");
+      setLoading(true);
 
       const res = await axiosInstance.post(
         "/posts",
-        { title, content, imageUrl },
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          title: title.trim(),
+          content: content.trim(),
+          imageUrl: imageUrl.trim() || null,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
 
       setSeverity("success");
-      setMessage("Post created successfully!");
+      setMessage(res.data?.message || "Post created successfully!");
 
+      // clear form
+      setTitle("");
+      setContent("");
+      setImageUrl("");
+
+      // small delay then go back to feed
       setTimeout(() => navigate("/"), 1000);
     } catch (err) {
+      console.error("❌ Create post error:", err?.response || err);
       setSeverity("error");
-      setMessage(err?.response?.data?.error || "Failed to create post");
+      setMessage(
+        err?.response?.data?.error ||
+          err?.response?.data?.message ||
+          "Failed to create post. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -65,6 +97,7 @@ export default function CreatePost() {
           background: "rgba(30, 30, 50, 0.85)",
           backdropFilter: "blur(8px)",
           borderRadius: 3,
+          border: "1px solid rgba(255,255,255,0.06)",
         }}
       >
         <CardContent>
@@ -82,7 +115,11 @@ export default function CreatePost() {
             Create a Post
           </Typography>
 
-          {message && <Alert severity={severity} sx={{ mb: 2 }}>{message}</Alert>}
+          {message && (
+            <Alert severity={severity} sx={{ mb: 2 }}>
+              {message}
+            </Alert>
+          )}
 
           <Stack spacing={2}>
             <TextField
@@ -115,6 +152,14 @@ export default function CreatePost() {
               disabled={loading}
             >
               {loading ? "Publishing..." : "Publish Post"}
+            </Button>
+
+            <Button
+              variant="text"
+              sx={{ textTransform: "none" }}
+              onClick={() => navigate("/")}
+            >
+              ← Back to Feed
             </Button>
           </Stack>
         </CardContent>
