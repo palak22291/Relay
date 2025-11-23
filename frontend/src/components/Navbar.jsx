@@ -15,10 +15,18 @@ export default function Navbar() {
       }}
     >
       <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
-        
         <Typography
           variant="h6"
-          sx={{ fontWeight: 800, cursor: "pointer" }}
+          sx={{
+            fontWeight: 800,
+            cursor: "pointer",
+
+            background:
+              "linear-gradient(135deg, hsl(270, 70%, 65%), hsl(270, 80%, 75%))",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+          }}
           onClick={() => navigate("/")}
         >
           Connectify
