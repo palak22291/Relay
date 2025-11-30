@@ -94,6 +94,7 @@ import axiosInstance from "../utils/axiosInstance";
 import { formatDistanceToNow } from "date-fns";
 import { Heart, MessageCircle } from "lucide-react"; 
 import { useNavigate } from "react-router-dom";
+import PostCard from "../components/PostCard";
 
 export default function Feed() {
   const [posts, setPosts] = useState([]);
@@ -120,6 +121,14 @@ export default function Feed() {
     return (parts[0][0] + parts[1][0]).toUpperCase();
   };
 
+  const handleDeletePost=(postId)=>{
+    setPosts((prev) => prev.filter((p) => p.id !== postId))
+
+
+
+
+  }
+
   return (
     <Box>
       {posts.length === 0 ? (
@@ -128,8 +137,11 @@ export default function Feed() {
         </Typography>
       ) : (
         posts.map((post) => (
-          <Card
+          <PostCard
             key={post.id}
+            post={post}
+            ondelete={handleDeletePost}
+            user={{id:1}}
             sx={{
               mb: 3,
               p: 2,
@@ -146,13 +158,13 @@ export default function Feed() {
             }}
           >
             <CardContent>
-              {/* HEADER: Avatar + Name + Time */}
+              
               <Stack direction="row" alignItems="center" spacing={2} mb={2}>
                 <Avatar
                   sx={{
                     width: 46,
                     height: 46,
-                    borderRadius: 2, // square rounded
+                    borderRadius: 2,
                     background: "linear-gradient(135deg, #6A00F4, #BB86FC)",
                     fontWeight: 700,
                   }}
@@ -171,7 +183,7 @@ export default function Feed() {
                 </Box>
               </Stack>
 
-              {/* TITLE */}
+      
               <Typography
                 variant="h6"
                 fontWeight={700}
@@ -180,7 +192,7 @@ export default function Feed() {
                 {post.title}
               </Typography>
 
-              {/* IMAGE (if exists) */}
+   
               {post.imageUrl && (
                 <Box
                   sx={{
@@ -205,14 +217,14 @@ export default function Feed() {
                 </Box>
               )}
 
-              {/* CONTENT */}
+            
               <Typography sx={{ mb: 2, color: "#cfcfcf" }}>
                 {post.content}
               </Typography>
 
               <Divider sx={{ my: 2, borderColor: "rgba(255,255,255,0.06)" }} />
 
-              {/* ACTION BUTTONS */}
+         
               <Stack direction="row" spacing={3}>
                 <IconButton color="inherit">
                   <Heart size={22} />
@@ -223,7 +235,7 @@ export default function Feed() {
                 </IconButton>
               </Stack>
             </CardContent>
-          </Card>
+          </PostCard>
         ))
       )}
     </Box>

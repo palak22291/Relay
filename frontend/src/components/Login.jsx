@@ -163,7 +163,7 @@ const Login = () => {
         password,
       });
       console.log("✅ Login success:", res.data);
-      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("authToken", res.data.token);
       navigate("/home");
     } catch (err) {
       console.error("❌ Login failed:", err.response?.data || err);
@@ -183,7 +183,7 @@ const Login = () => {
       });
 
       console.log("✅ Server response from /auth/google:", res.data);
-      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("authToken", res.data.token);
       navigate("/home");
     } catch (error) {
       console.error("❌ Google login error:", error);

@@ -16,7 +16,7 @@ export default function Navbar() {
     >
       <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
         <Typography
-          variant="h6"
+          variant="h5"
           sx={{
             fontWeight: 800,
             cursor: "pointer",
