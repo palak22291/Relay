@@ -164,7 +164,8 @@ const Login = () => {
       });
       console.log("✅ Login success:", res.data);
       localStorage.setItem("authToken", res.data.token);
-      navigate("/home");
+      navigate("/");
+      
     } catch (err) {
       console.error("❌ Login failed:", err.response?.data || err);
       alert("Invalid credentials!");
@@ -177,7 +178,7 @@ const Login = () => {
       const decoded = jwtDecode(credentialResponse.credential);
       console.log("🧠 Decoded Google user:", decoded);
 
-      // ✅ Fixed endpoint
+    
       const res = await axios.post(`${API_URL}/auth/google`, {
         token: credentialResponse.credential,
       });
