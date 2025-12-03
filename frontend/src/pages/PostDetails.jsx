@@ -117,7 +117,7 @@ export default function PostDetails() {
   return (
     <Box sx={{ maxWidth: 700, mx: "auto", p: 2 }}>
       {/* BACK BUTTON */}
-      <IconButton onClick={() => navigate(-1)} sx={{ mb: 2 }}>
+      <IconButton onClick={() => navigate("/")} sx={{ mb: 2 }}>
         <ArrowBack sx={{ color: "white" }} />
       </IconButton>
 
@@ -255,7 +255,7 @@ export default function PostDetails() {
                 </Box>
 
                
-                {currentUser?.id === c.authorId && (
+                {currentUser?.id === c.author?.id && (
                   <IconButton
                     onClick={() => handleDeleteComment(c.id)}
                     size="small"
