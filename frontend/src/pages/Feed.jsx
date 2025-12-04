@@ -166,35 +166,48 @@
 
 
 
+
 import React, { useEffect, useState } from "react";
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, Button } from "@mui/material";
 import axiosInstance from "../utils/axiosInstance";
 import PostCard from "../components/PostCard";
-import { jwtDecode } from "jwt-decode";
 
 export default function Feed() {
   const [posts, setPosts] = useState([]);
-  const [user, setUser] = useState(null);
-
-  
-  useEffect(() => {
-    const token = localStorage.getItem("authToken");
-    if (token) {
-      const decoded = jwtDecode(token);
-      setUser({ id: decoded.userId });  
-    }
-  }, []);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetchPosts();
-  }, []);
+    fetchPosts(page);
+  }, [page]);
 
-  const fetchPosts = async () => {
+  const fetchPosts = async (pageNumber) => {
     try {
-      const res = await axiosInstance.get("/posts?limit=20&page=1");
-      setPosts(res.data.posts || []);
+      setLoading(true);
+      const res = await axiosInstance.get(`/posts?limit=5&page=${pageNumber}`);
+
+      const newPosts = res.data.posts || [];
+
+      // Append posts instead of replacing
+      if (newPosts.length > 0) {
+        setPosts((prev) => [...prev, ...newPosts]);
+      }
+
+      // If fewer than limit → no more posts
+      if (newPosts.length < 5) {
+        setHasMore(false);
+      }
     } catch (err) {
       console.error("❌ Fetch posts failed:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLoadMore = () => {
+    if (hasMore) {
+      setPage((prev) => prev + 1);
     }
   };
 
@@ -214,9 +227,26 @@ export default function Feed() {
             key={post.id}
             post={post}
             onDelete={handleDeletePost}
-            user={user}  
           />
         ))
+      )}
+
+      {/* LOAD MORE BUTTON */}
+      {hasMore && (
+        <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
+          <Button
+            variant="contained"
+            disabled={loading}
+            onClick={handleLoadMore}
+            sx={{
+              textTransform: "none",
+              fontSize: "16px",
+              padding: "8px 20px",
+            }}
+          >
+            {loading ? "Loading..." : "Load More"}
+          </Button>
+        </Box>
       )}
     </Box>
   );
