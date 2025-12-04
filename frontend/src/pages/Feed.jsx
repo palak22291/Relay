@@ -164,37 +164,49 @@
 //   );
 // }
 
-
-
-
 import React, { useEffect, useState } from "react";
-import { Box, Typography, Button } from "@mui/material";
+import { Box, Typography, Button, CircularProgress, Stack } from "@mui/material";
 import axiosInstance from "../utils/axiosInstance";
 import PostCard from "../components/PostCard";
 
 export default function Feed() {
   const [posts, setPosts] = useState([]);
   const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [loadMoreLoading, setLoadMoreLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    fetchPosts(page);
-  }, [page]);
+  const [currentUser, setCurrentUser] = useState(null);
 
-  const fetchPosts = async (pageNumber) => {
+  // ------------------------------
+  // FETCH LOGGED-IN USER
+  // ------------------------------
+  const fetchCurrentUser = async () => {
     try {
-      setLoading(true);
-      const res = await axiosInstance.get(`/posts?limit=5&page=${pageNumber}`);
+      const res = await axiosInstance.get("/auth/me");
+      setCurrentUser(res.data.user);
+    } catch (err) {
+      console.error("❌ Failed to fetch user:", err);
+    }
+  };
 
+  // ------------------------------
+  // FETCH POSTS
+  // ------------------------------
+  const fetchPosts = async (pageNumber = 1) => {
+    try {
+      if (pageNumber === 1) setLoading(true);
+      else setLoadMoreLoading(true);
+
+      const res = await axiosInstance.get(`/posts?limit=5&page=${pageNumber}`);
       const newPosts = res.data.posts || [];
 
-      // Append posts instead of replacing
-      if (newPosts.length > 0) {
+      if (pageNumber === 1) {
+        setPosts(newPosts);
+      } else {
         setPosts((prev) => [...prev, ...newPosts]);
       }
 
-      // If fewer than limit → no more posts
       if (newPosts.length < 5) {
         setHasMore(false);
       }
@@ -202,49 +214,72 @@ export default function Feed() {
       console.error("❌ Fetch posts failed:", err);
     } finally {
       setLoading(false);
+      setLoadMoreLoading(false);
     }
   };
 
-  const handleLoadMore = () => {
-    if (hasMore) {
-      setPage((prev) => prev + 1);
-    }
-  };
+  useEffect(() => {
+    fetchCurrentUser();
+    fetchPosts(1);
+  }, []);
 
+  // ------------------------------
+  // DELETE POST HANDLER
+  // ------------------------------
   const handleDeletePost = (postId) => {
     setPosts((prev) => prev.filter((p) => p.id !== postId));
   };
 
   return (
-    <Box sx={{ px: 2, py: 2 }}>
-      {posts.length === 0 ? (
-        <Typography align="center" sx={{ mt: 8, color: "gray" }}>
-          No posts yet — start following people.
+    <Box sx={{ px: 2, py: 3 }}>
+      <Typography
+        variant="h4"
+        fontWeight={800}
+        sx={{
+          mb: 4,
+          background: "linear-gradient(90deg, #6A00F4, #BB86FC)",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+        }}
+      >
+        Connectify Feed
+      </Typography>
+
+      {/* FIRST TIME LOADER */}
+      {loading ? (
+        <Box sx={{ textAlign: "center", mt: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : posts.length === 0 ? (
+        <Typography sx={{ textAlign: "center", mt: 4, color: "gray" }}>
+          No posts yet.
         </Typography>
       ) : (
-        posts.map((post) => (
-          <PostCard
-            key={post.id}
-            post={post}
-            onDelete={handleDeletePost}
-          />
-        ))
+        <Stack spacing={3}>
+          {posts.map((post) => (
+            <PostCard
+              key={post.id}
+              post={post}
+              onDelete={handleDeletePost}
+              user={currentUser}  // IMPORTANT
+            />
+          ))}
+        </Stack>
       )}
 
-      {/* LOAD MORE BUTTON */}
-      {hasMore && (
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
+      {/* LOAD MORE */}
+      {!loading && hasMore && (
+        <Box sx={{ textAlign: "center", mt: 3 }}>
           <Button
             variant="contained"
-            disabled={loading}
-            onClick={handleLoadMore}
-            sx={{
-              textTransform: "none",
-              fontSize: "16px",
-              padding: "8px 20px",
+            onClick={() => {
+              const nextPage = page + 1;
+              setPage(nextPage);
+              fetchPosts(nextPage);
             }}
+            disabled={loadMoreLoading}
           >
-            {loading ? "Loading..." : "Load More"}
+            {loadMoreLoading ? "Loading..." : "Load More"}
           </Button>
         </Box>
       )}
