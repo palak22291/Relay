@@ -9,7 +9,7 @@ import {
   TextField,
   Button,
   IconButton,
-//   Divider,
+  //   Divider,
   CircularProgress,
 } from "@mui/material";
 import { ArrowBack, Delete as DeleteIcon } from "@mui/icons-material";
@@ -26,6 +26,8 @@ export default function PostDetails() {
   const [loadingPost, setLoadingPost] = useState(true);
   const [loadingComments, setLoadingComments] = useState(true);
   const [newComment, setNewComment] = useState("");
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editText, setEditText] = useState("");
 
   // Fetch logged-in user from token decoded endpoint (/auth/me or /user/me)
   const [currentUser, setCurrentUser] = useState(null);
@@ -35,11 +37,11 @@ export default function PostDetails() {
     fetchCurrentUser();
     fetchPost();
     fetchComments();
-  },[postId]);
+  }, [postId]);
 
   const fetchCurrentUser = async () => {
     try {
-      const res = await axiosInstance.get("/auth/me"); 
+      const res = await axiosInstance.get("/auth/me");
       console.log("CURRENT USER:", res.data.user);
       setCurrentUser(res.data.user);
     } catch (err) {
@@ -50,7 +52,7 @@ export default function PostDetails() {
   const fetchPost = async () => {
     try {
       const res = await axiosInstance.get(`/posts/${postId}`);
-      setPost(res.data.post || res.data); 
+      setPost(res.data.post || res.data);
     } catch (err) {
       console.error("❌ Post fetch error:", err);
     } finally {
@@ -78,10 +80,35 @@ export default function PostDetails() {
         content: newComment.trim(),
       });
 
-      setComments((prev) => [res.data.comment, ...prev]); 
+      setComments((prev) => [res.data.comment, ...prev]);
       setNewComment("");
     } catch (err) {
       console.error("❌ Add comment error:", err);
+    }
+  };
+
+  const handleUpdateComment = async (commentId) => {
+    if (!editText.trim()) {
+      alert("Comment cannot be empty");
+      return;
+    }
+
+    try {
+      const res = await axiosInstance.put(`/comments/update/${commentId}`, {
+        content: editText.trim(),
+      });
+
+      setComments((prev) =>
+        prev.map((c) =>
+          c.id === commentId ? { ...c, content: editText.trim() } : c
+        )
+      );
+
+      setEditingCommentId(null);
+      setEditText("");
+    } catch (err) {
+      console.error("❌ Update comment error:", err);
+      alert("Failed to update comment");
     }
   };
 
@@ -100,7 +127,10 @@ export default function PostDetails() {
   const getInitials = (name) => {
     if (!name) return "U";
     const parts = name.trim().split(" ");
-    return parts.map((p) => p[0]).join("").toUpperCase();
+    return parts
+      .map((p) => p[0])
+      .join("")
+      .toUpperCase();
   };
 
   if (loadingPost)
@@ -124,159 +154,104 @@ export default function PostDetails() {
         <ArrowBack sx={{ color: "white" }} />
       </IconButton>
 
-      {/* POST CARD */}
-      <Card
-        sx={{
-          background: "rgba(30, 30, 50, 0.85)",
-          borderRadius: 3,
-          border: "1px solid rgba(255,255,255,0.05)",
-          mb: 4,
-        }}
-      >
-        <CardContent>
-          <Stack direction="row" spacing={2} alignItems="center" mb={2}>
-            <Avatar
-              sx={{
-                width: 46,
-                height: 46,
-                background: "linear-gradient(135deg, #6A00F4, #BB86FC)",
-              }}
-            >
-              {getInitials(
-                post.author?.firstName + " " + post.author?.lastName
-              )}
-            </Avatar>
+      {comments.map((c) => (
+        <Card
+          key={c.id}
+          sx={{
+            background: "rgba(20, 20, 35, 0.85)",
+            borderRadius: 3,
+            border: "1px solid rgba(255,255,255,0.04)",
+            mb: 2,
+          }}
+        >
+          <CardContent>
+            <Stack direction="row" spacing={2} alignItems="center">
+              <Avatar
+                sx={{
+                  width: 40,
+                  height: 40,
+                  background: "linear-gradient(135deg, #6A00F4, #BB86FC)",
+                }}
+              >
+                {getInitials(c.author?.firstName + " " + c.author?.lastName)}
+              </Avatar>
 
-            <Box>
-              <Typography fontWeight={600}>
-                @{post.author?.firstName?.toLowerCase()}
-              </Typography>
+              <Box sx={{ flexGrow: 1 }}>
+                <Typography fontWeight={600}>
+                  @{c.author?.firstName?.toLowerCase()}
+                </Typography>
 
-              <Typography sx={{ color: "gray" }} variant="body2">
-                {formatDistanceToNow(new Date(post.createdAt))} ago
-              </Typography>
-            </Box>
-          </Stack>
+                <Typography sx={{ color: "gray" }} variant="body2">
+                  {formatDistanceToNow(new Date(c.createdAt))} ago
+                </Typography>
 
-          <Typography variant="h5" fontWeight={700} sx={{ mb: 1 }}>
-            {post.title}
-          </Typography>
+                {/* 👇 EDIT MODE */}
+                {editingCommentId === c.id ? (
+                  <>
+                    <TextField
+                      fullWidth
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      sx={{ mt: 1, input: { color: "white" } }}
+                    />
 
-          <Typography sx={{ mb: 2 }}>{post.content}</Typography>
+                    <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                      <Button
+                        variant="contained"
+                        size="small"
+                        onClick={() => handleUpdateComment(c.id)}
+                      >
+                        Save
+                      </Button>
 
-          {post.imageUrl && (
-            <Box
-              sx={{
-                mt: 2,
-                borderRadius: 3,
-                overflow: "hidden",
-              }}
-            >
-              <img
-                src={post.imageUrl}
-                alt="Post"
-                style={{ width: "100%", borderRadius: "8px" }}
-              />
-            </Box>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* ADD COMMENT INPUT */}
-      <Card
-        sx={{
-          background: "rgba(25, 25, 40, 0.85)",
-          borderRadius: 3,
-          border: "1px solid rgba(255,255,255,0.04)",
-          mb: 3,
-        }}
-      >
-        <CardContent>
-          <Typography variant="h6" sx={{ mb: 2 }}>
-            Add a Comment
-          </Typography>
-
-          <Stack direction="row" spacing={2}>
-            <TextField
-              fullWidth
-              variant="outlined"
-              placeholder="Write your comment..."
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              sx={{
-                input: { color: "white" },
-              }}
-            />
-            <Button variant="contained" onClick={handleAddComment}>
-              Post
-            </Button>
-          </Stack>
-        </CardContent>
-      </Card>
-
-      {/* COMMENTS LIST */}
-      <Typography variant="h6" sx={{ mb: 2 }}>
-        Comments
-      </Typography>
-
-      {loadingComments ? (
-        <CircularProgress />
-      ) : comments.length === 0 ? (
-        <Typography sx={{ color: "gray" }}>No comments yet.</Typography>
-      ) : (
-        comments.map((c) => (
-          <>
-              {console.log("COMMENT OBJECT:", c)}
-              {console.log("CURRENT USER INSIDE MAP:", currentUser)}
-
-
-          <Card
-            key={c.id}
-            sx={{
-              background: "rgba(20, 20, 35, 0.85)",
-              borderRadius: 3,
-              border: "1px solid rgba(255,255,255,0.04)",
-              mb: 2,
-            }}
-          >
-            <CardContent>
-              <Stack direction="row" spacing={2} alignItems="center">
-                <Avatar
-                  sx={{
-                    width: 40,
-                    height: 40,
-                    background: "linear-gradient(135deg, #6A00F4, #BB86FC)",
-                  }}
-                >
-                  {getInitials(c.author?.firstName + " " + c.author?.lastName)}
-                </Avatar>
-
-                <Box sx={{ flexGrow: 1 }}>
-                  <Typography fontWeight={600}>
-                    @{c.author?.firstName?.toLowerCase()}
-                  </Typography>
-                  <Typography sx={{ color: "gray" }} variant="body2">
-                    {formatDistanceToNow(new Date(c.createdAt))} ago
-                  </Typography>
-
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => {
+                          setEditingCommentId(null);
+                          setEditText("");
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </Stack>
+                  </>
+                ) : (
+                  /* 👇 NORMAL VIEW */
                   <Typography sx={{ mt: 1 }}>{c.content}</Typography>
-                </Box>
+                )}
+              </Box>
 
-               
-                {currentUser?.userId === c.authorId && (
+              {/* EDIT + DELETE icons (show ONLY if your comment) */}
+              {currentUser?.userId === c.authorId && (
+                <Stack direction="row">
+                  {/* EDIT button */}
+                  {editingCommentId !== c.id && (
+                    <Button
+                      size="small"
+                      sx={{ mr: 1 }}
+                      onClick={() => {
+                        setEditingCommentId(c.id);
+                        setEditText(c.content);
+                      }}
+                    >
+                      Edit
+                    </Button>
+                  )}
+
+                  {/* DELETE button */}
                   <IconButton
                     onClick={() => handleDeleteComment(c.id)}
                     size="small"
                   >
                     <DeleteIcon sx={{ color: "error.main" }} />
                   </IconButton>
-                )}
-              </Stack>
-            </CardContent>
-          </Card>
-          </>
-        ))
-      )}
+                </Stack>
+              )}
+            </Stack>
+          </CardContent>
+        </Card>
+      ))}
     </Box>
   );
 }
