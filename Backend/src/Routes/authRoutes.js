@@ -4,11 +4,12 @@ const authMiddleware = require("../Middleware/auth");
 
 
 const { googleAuth } = require("../Controllers/googleAuthController");
+const { validate, registerSchema, loginSchema } = require("../Validation/schemas");
 
 const router = express.Router();
 
-router.post("/register", register);
-router.post("/login", login);
+router.post("/register", validate(registerSchema), register);
+router.post("/login", validate(loginSchema), login);
 router.post("/google", googleAuth);
 
 router.get("/me", authMiddleware, (req, res) => {
