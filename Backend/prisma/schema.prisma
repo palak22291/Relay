@@ -67,7 +67,7 @@ model Post {
   published Boolean @default(false)
   category String?
   authorId  Int
-  author    User     @relation(fields: [authorId], references: [id])
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
    comments  Comment[]
 
   likes Like[]
@@ -86,8 +86,8 @@ model Comment {
   content   String
   authorId  Int
   postId    Int
-  author    User     @relation(fields: [authorId], references: [id])
-  post      Post     @relation(fields: [postId], references: [id])
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   @@index([postId])
   @@index([createdAt])
@@ -98,8 +98,8 @@ model Like{
    id       Int  @id @default(autoincrement())
   userId   Int
   postId   Int
-  user     User @relation(fields: [userId], references: [id])
-  post     Post @relation(fields: [postId], references: [id])
+  user     User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post     Post @relation(fields: [postId], references: [id], onDelete: Cascade)
   createdAt DateTime  @default(now())
 
   @@unique([userId, postId])
