@@ -1,270 +1,137 @@
-// import React, { useState, useEffect } from "react";
-// import axios from "axios";
-// import { GoogleLogin } from "@react-oauth/google";
-// import {jwtDecode }from "jwt-decode";
-// import { Box, Button, TextField, Typography, Link } from "@mui/material";
-// import { useNavigate } from "react-router-dom";
-
-// import axiosInstance from "../utils/axiosInstance";
-// const Login = () => {
-//   const navigate = useNavigate();
-//   const [email, setEmail] = useState("");
-//   const [password, setPassword] = useState("");
-
-//   useEffect(() => {
-//     console.log("🌍 Frontend loaded at:", window.location.origin);
-//   }, []);
-
-
-//   const handleSubmit = async (e) => {
-//     e.preventDefault();
-//     try {
-//       const res = await axios.post(
-//         "https://social-media-qec5.onrender.com/auth/login",
-//         { email, password }
-//       );
-//       console.log("✅ Login success:", res.data);
-//       localStorage.setItem("token", res.data.token);
-//       navigate("/home");
-//     } catch (err) {
-//       console.error("❌ Login failed:", err.response?.data || err);
-//       alert("Invalid credentials!");
-//     }
-//   };
-
- 
-//   const handleGoogleSuccess = async (credentialResponse) => {
-//     console.log("🔹 Google credential response:", credentialResponse);
-//     try {
-//       const decoded = jwtDecode(credentialResponse.credential);
-//       console.log("🧠 Decoded Google user:", decoded);
-
-//       const res = await axios.post(
-//         "https://social-media-qec5.onrender.com/auth/google",
-//         {
-//           token: credentialResponse.credential,
-//         }
-//       );
-
-//       console.log("✅ Server response from /auth/google:", res.data);
-//       localStorage.setItem("token", res.data.token);
-//       navigate("/home");
-//     } catch (error) {
-//       console.error("❌ Google login error:", error);
-//     }
-//   };
-
-//   const handleGoogleFailure = (error) => {
-//     console.error("❌ Google login failed:", error);
-//   };
-
-//   return (
-//     <Box
-//       sx={{
-//         width: 400,
-//         margin: "auto",
-//         marginTop: 10,
-//         padding: 3,
-//         boxShadow: 3,
-//         borderRadius: 2,
-//       }}
-//     >
-//       <Typography variant="h5" fontWeight="bold" mb={2}>
-//         Login
-//       </Typography>
-
-//       <form onSubmit={handleSubmit}>
-//         <TextField
-//           fullWidth
-//           label="Email"
-//           margin="normal"
-//           variant="outlined"
-//           value={email}
-//           onChange={(e) => setEmail(e.target.value)}
-//         />
-//         <TextField
-//           fullWidth
-//           label="Password"
-//           margin="normal"
-//           variant="outlined"
-//           type="password"
-//           value={password}
-//           onChange={(e) => setPassword(e.target.value)}
-//         />
-//         <Button
-//           type="submit"
-//           variant="contained"
-//           fullWidth
-//           sx={{ mt: 2, borderRadius: "20px" }}
-//         >
-//           Login
-//         </Button>
-//       </form>
-
-//       <Box sx={{ mt: 2, textAlign: "center" }}>
-//         <Typography variant="body2" color="text.secondary">
-//           or continue with
-//         </Typography>
-//         <Box sx={{ display: "flex", justifyContent: "center", mt: 1 }}>
-//           <GoogleLogin
-//             onSuccess={handleGoogleSuccess}
-//             onError={handleGoogleFailure}
-//           />
-//         </Box>
-//       </Box>
-
-//       <Box sx={{ mt: 2, textAlign: "center" }}>
-//         <Typography variant="body2">
-//           Don’t have an account?{" "}
-//           <Link
-//             component="button"
-//             variant="body2"
-//             onClick={() => navigate("")}
-//           >
-//             Sign up
-//           </Link>
-//         </Typography>
-//       </Box>
-//     </Box>
-//   );
-// };
-
-// export default Login;
-
-
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import axios from "axios";
 import { GoogleLogin } from "@react-oauth/google";
-import { jwtDecode } from "jwt-decode";
-import { Box, Button, TextField, Typography, Link } from "@mui/material";
+import { Box, Card, Button, TextField, Typography, Alert } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-
-// import axiosInstance from "../utils/axiosInstance";
 
 const Login = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const API_URL = process.env.REACT_APP_API_URL;
 
-  useEffect(() => {
-    console.log("🌍 Frontend loaded at:", window.location.origin);
-    console.log("🔗 Backend API URL:", API_URL);
-  }, [API_URL]);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(null);
     try {
-    
-      const res = await axios.post(`${API_URL}/auth/login`, {
-        email,
-        password,
-      });
-      console.log("✅ Login success:", res.data);
+      setLoading(true);
+      const res = await axios.post(`${API_URL}/auth/login`, { email, password });
       localStorage.setItem("authToken", res.data.token);
       navigate("/");
-      
     } catch (err) {
-      console.error("❌ Login failed:", err.response?.data || err);
-      alert("Invalid credentials!");
+      setError(err.response?.data?.error || "Invalid credentials");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleGoogleSuccess = async (credentialResponse) => {
-    console.log("🔹 Google credential response:", credentialResponse);
+    setError(null);
     try {
-      const decoded = jwtDecode(credentialResponse.credential);
-      console.log("🧠 Decoded Google user:", decoded);
-
-    
       const res = await axios.post(`${API_URL}/auth/google`, {
         token: credentialResponse.credential,
       });
-
-      console.log("✅ Server response from /auth/google:", res.data);
       localStorage.setItem("authToken", res.data.token);
-      navigate("/home");
-    } catch (error) {
-      console.error("❌ Google login error:", error);
+      navigate("/");
+    } catch (err) {
+      setError("Google sign-in failed. Try again.");
     }
-  };
-
-  const handleGoogleFailure = (error) => {
-    console.error("❌ Google login failed:", error);
   };
 
   return (
     <Box
       sx={{
-        width: 400,
-        margin: "auto",
-        marginTop: 10,
-        padding: 3,
-        boxShadow: 3,
-        borderRadius: 2,
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "background.default",
       }}
     >
-      <Typography variant="h5" fontWeight="bold" mb={2}>
-        Login
-      </Typography>
-
-      <form onSubmit={handleSubmit}>
-        <TextField
-          fullWidth
-          label="Email"
-          margin="normal"
-          variant="outlined"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <TextField
-          fullWidth
-          label="Password"
-          margin="normal"
-          variant="outlined"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <Button
-          type="submit"
-          variant="contained"
-          fullWidth
-          sx={{ mt: 2, borderRadius: "20px" }}
+      <Box sx={{ width: "100%", maxWidth: 400, px: 3 }}>
+        {/* Wordmark centered */}
+        <Typography
+          sx={{
+            fontFamily: "'Playfair Display', serif",
+            fontWeight: 700,
+            fontSize: "28px",
+            textAlign: "center",
+            mb: 1,
+            color: "text.primary",
+            letterSpacing: "-0.5px",
+            "& span": { color: "primary.main" },
+          }}
         >
-          Login
-        </Button>
-      </form>
-
-      <Box sx={{ mt: 2, textAlign: "center" }}>
-        <Typography variant="body2" color="text.secondary">
-          or continue with
+          Relay<span>.</span>
         </Typography>
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 1 }}>
-          <GoogleLogin
-            onSuccess={handleGoogleSuccess}
-            onError={handleGoogleFailure}
-          />
-        </Box>
-      </Box>
-
-      <Box sx={{ mt: 2, textAlign: "center" }}>
-        <Typography variant="body2">
-          Don’t have an account?{" "}
-          <Link
-            component="button"
-            variant="body2"
-            onClick={() => navigate("/register")}
-          >
-            Sign up
-          </Link>
+        <Typography
+          sx={{ textAlign: "center", color: "text.disabled", fontSize: "14px", mb: 4 }}
+        >
+          Welcome back.
         </Typography>
+
+        <Card sx={{ p: 3 }}>
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+
+          <form onSubmit={handleSubmit}>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <TextField
+                fullWidth
+                placeholder="Email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <TextField
+                fullWidth
+                placeholder="Password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <Button
+                type="submit"
+                variant="contained"
+                color="primary"
+                fullWidth
+                size="large"
+                disabled={loading}
+              >
+                {loading ? "Signing in…" : "Sign in"}
+              </Button>
+
+              <Box sx={{ display: "flex", justifyContent: "center" }}>
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={() => setError("Google sign-in failed. Try again.")}
+                  theme="filled_black"
+                  shape="pill"
+                />
+              </Box>
+
+              <Typography sx={{ textAlign: "center", fontSize: "13px", color: "text.disabled" }}>
+                Don't have an account?{" "}
+                <Box
+                  component="span"
+                  sx={{ color: "primary.main", cursor: "pointer" }}
+                  onClick={() => navigate("/register")}
+                >
+                  Sign up
+                </Box>
+              </Typography>
+            </Box>
+          </form>
+        </Card>
       </Box>
     </Box>
   );
 };
 
 export default Login;
-
