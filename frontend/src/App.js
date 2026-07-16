@@ -5,8 +5,8 @@ import PostDetails from "./pages/PostDetails";
 
 import Register from "./components/Register";
 import Login from "./components/Login";
-import React, { useState, useMemo, createContext, useContext } from "react";
-import { Routes, Route } from "react-router-dom";
+import React, { useState, useMemo, useEffect, createContext, useContext } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider, CssBaseline } from "@mui/material";
 import { getTheme } from "./theme";
 import EditPost from "./pages/EditPost";
@@ -15,9 +15,22 @@ import EditPost from "./pages/EditPost";
 const ColorModeContext = createContext({ mode: "dark", toggleMode: () => {} });
 export const useColorMode = () => useContext(ColorModeContext);
 
+// No token → straight to /login. (Expired tokens are handled by the
+// axios 401 interceptor, which clears the token and redirects.)
+function RequireAuth({ children }) {
+  const token = localStorage.getItem("authToken");
+  if (!token) return <Navigate to="/login" replace />;
+  return children;
+}
+
 function App() {
   const [mode, setMode] = useState(() => localStorage.getItem("colorMode") || "dark");
   const theme = useMemo(() => getTheme(mode), [mode]);
+
+  // keep the pre-paint background (index.css html[data-theme]) in sync
+  useEffect(() => {
+    document.documentElement.dataset.theme = mode;
+  }, [mode]);
 
   const toggleMode = () =>
     setMode((m) => {
@@ -36,33 +49,41 @@ function App() {
           <Route
             path="/"
             element={
-              <MainLayout>
-                <Feed />
-              </MainLayout>
+              <RequireAuth>
+                <MainLayout>
+                  <Feed />
+                </MainLayout>
+              </RequireAuth>
             }
           />
           <Route
             path="/create"
             element={
-              <MainLayout>
-                <CreatePost />
-              </MainLayout>
+              <RequireAuth>
+                <MainLayout>
+                  <CreatePost />
+                </MainLayout>
+              </RequireAuth>
             }
           />
           <Route
             path="/edit/:postId"
             element={
-              <MainLayout>
-                <EditPost />
-              </MainLayout>
+              <RequireAuth>
+                <MainLayout>
+                  <EditPost />
+                </MainLayout>
+              </RequireAuth>
             }
           />
           <Route
             path="/post/:postId"
             element={
-              <MainLayout>
-                <PostDetails />
-              </MainLayout>
+              <RequireAuth>
+                <MainLayout>
+                  <PostDetails />
+                </MainLayout>
+              </RequireAuth>
             }
           />
         </Routes>
