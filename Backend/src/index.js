@@ -13,16 +13,21 @@ const userRoutes = require("./Routes/userRoutes");
 
 
 
+// single source of truth for allowed origins — Phase 1 socket setup reuses this
+const CORS_ORIGINS = [
+  "https://connectify-palaks-projects-63c6e26a.vercel.app",
+  "https://social-media-ebon-one.vercel.app",
+];
+// any localhost port, dev only — never in production
+if (process.env.NODE_ENV !== "production") {
+  CORS_ORIGINS.push(/^http:\/\/localhost:\d+$/);
+}
+
 const app = express();
 app.use(helmet());
 app.use(
     cors({
-      origin: [
-        "https://connectify-palaks-projects-63c6e26a.vercel.app",
-        "https://social-media-ebon-one.vercel.app",
-        "http://localhost:3000",
-
-      ],
+      origin: CORS_ORIGINS,
       methods: ["GET", "POST", "PUT", "DELETE"],
       credentials: true,
     })
