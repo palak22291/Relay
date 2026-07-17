@@ -21,7 +21,7 @@ const dark = {
 
 // Light mode palette
 const light = {
-  bgPage: "#FDF9F4",
+  bgPage: "#c7bcae",
   bgCard: "#FFFFFF",
   bgCardHover: "#FAF5EE",
   bgInput: "#F5EFE8",
