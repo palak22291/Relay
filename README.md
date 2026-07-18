@@ -66,7 +66,7 @@ Connectify addresses these issues by offering:
 ##  Deployment Summary
 - **Frontend** deployed on [Vercel](https://vercel.com)  
 - **Backend** deployed on [Render](https://render.com)  
-- **Database** hosted on Render (PostgreSQL)
+- **Database** hosted on Aiven (PostgreSQL)
 
 
 ##  Contributors
