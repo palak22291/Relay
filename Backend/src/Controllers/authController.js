@@ -41,6 +41,13 @@ exports.login = async (req, res) => {
         .json({ error: "User not found. Please register first." });
     }
 
+    // Google-only accounts have no usable password ("" marker set by googleAuth)
+    if (!user.password) {
+      return res.status(400).json({
+        error: "This account uses Google sign-in. Use the Google button instead.",
+      });
+    }
+
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(400).json({ error: "Invalid email or password" });

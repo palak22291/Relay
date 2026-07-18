@@ -5,61 +5,52 @@ const { generateToken } = require("../Utils/jwt");
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 exports.googleAuth = async (req, res) => {
-  console.log(" Incoming Google auth request...");
   try {
     const { token } = req.body;
-    console.log("📥 Received token:", token ? " Yes" : " No");
 
     if (!token) {
       return res.status(400).json({ error: "No token provided" });
     }
 
-    
-    console.log("🔍 Verifying token with Google...");
     const ticket = await client.verifyIdToken({
       idToken: token,
       audience: process.env.GOOGLE_CLIENT_ID,
     });
 
     const payload = ticket.getPayload();
-    console.log(" Google verification success:", payload.email);
+    const { email, name, given_name, family_name } = payload;
 
-    const { email, name, picture } = payload;
-
-    // Check if user already exists
     let user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
-      console.log(" Creating new Google user:", email);
+      // Google provides given_name/family_name directly — prefer them over
+      // splitting `name`, which loses multi-part surnames ("Del Rey" etc.)
+      const firstName = given_name || name?.split(" ")[0] || "User";
+      const lastName = family_name || name?.split(" ").slice(1).join(" ") || "";
+
       user = await prisma.user.create({
         data: {
-          firstName: name?.split(" ")[0] || "",
-          lastName: name?.split(" ")[1] || "",
+          firstName,
+          lastName,
           email,
+          // "" is the explicit marker for Google-only accounts (no usable
+          // password). login() checks for it and points these users at the
+          // Google button; bcrypt.compare against "" can never succeed.
           password: "",
-          // profilePic: picture || "",
-          // authProvider: "google",
         },
       });
-    } else {
-      console.log(" Existing user found:", email);
     }
 
     const jwtToken = generateToken({ userId: user.id, email: user.email });
-    console.log(" JWT generated for user:", user.email);
 
+    // same shape as the normal login response
     res.json({
       message: "Google authentication successful",
       token: jwtToken,
-      user: {
-        id: user.id,
-        firstName: user.firstName,
-        email: user.email,
-        profilePic: user.profilePic,
-      },
+      user: { id: user.id, firstName: user.firstName, email: user.email },
     });
   } catch (err) {
-    console.error(" Google Auth Error:", err);
+    console.error("Google Auth Error:", err.message);
     res.status(500).json({ error: "Google authentication failed" });
   }
 };
