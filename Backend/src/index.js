@@ -15,8 +15,9 @@ const userRoutes = require("./Routes/userRoutes");
 
 // single source of truth for allowed origins — Phase 1 socket setup reuses this
 const CORS_ORIGINS = [
-  "https://connectify-palaks-projects-63c6e26a.vercel.app",
-  "https://social-media-ebon-one.vercel.app",
+  'https://relay-palakgupta.vercel.app',
+  "https://relay-git-main-palakgupta.vercel.app",
+  "https://relay-3i5qc1etx-palakgupta.vercel.app",
 ];
 // any localhost port, dev only — never in production
 if (process.env.NODE_ENV !== "production") {
