@@ -1,5 +1,5 @@
 // src/components/PostCard.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -31,6 +31,13 @@ export default function PostCard({ post, onDelete, user }) {
   const [likeCount, setLikeCount] = useState(post._count?.likes || 0);
   const [menuEl, setMenuEl] = useState(null);
   const [deleting, setDeleting] = useState(false);
+
+  // live like:updated events patch post._count.likes in the feed state —
+  // adopt the server's absolute count. `liked` stays local: it tracks THIS
+  // user's heart, which socket counts say nothing about.
+  useEffect(() => {
+    setLikeCount(post._count?.likes || 0);
+  }, [post._count?.likes]);
 
   const handleLike = async () => {
     if (!user) return navigate("/login");

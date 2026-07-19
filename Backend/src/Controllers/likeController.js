@@ -1,4 +1,5 @@
 const { prisma } = require("../../prisma/client");
+const { safeEmit } = require("../socket");
 
 // if the user has already liked the post → it will remove the like
 // If the user has not liked the post yet → it will add the like
@@ -41,8 +42,12 @@ exports.toggleLike = async (req, res) => {
       }
     }
 
-    // fresh absolute count — the socket layer (Phase 2) will broadcast this
+    // fresh absolute count — receivers always trust this over client-side math
     const likeCount = await prisma.like.count({ where: { postId } });
+
+    const payload = { postId, likeCount, liked, actorId: userId };
+    safeEmit(`post:${postId}`, "like:updated", payload);
+    safeEmit("feed", "like:updated", payload);
 
     return res.json({
       message: liked ? "Post liked successfully" : "Like removed successfully",

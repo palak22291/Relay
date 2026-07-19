@@ -1,5 +1,6 @@
 const { prisma } = require("../../prisma/client");
 const { encodeCursor, decodeCursor } = require("../Utils/cursor");
+const { safeEmit } = require("../socket");
 
 // create a new post
 
@@ -8,7 +9,7 @@ exports.createPost = async (req, res) => {
     const { title, imageUrl, content } = req.body;
     // body already validated by zod (createPostSchema) in the route
 
-    const post = await prisma.post.create({
+    const created = await prisma.post.create({
       data: {
         title,
         content,
@@ -17,6 +18,20 @@ exports.createPost = async (req, res) => {
         // this info of userr comes from auth middleware
       },
     });
+
+    // refetch with the same shape the feed renders (author + counts) so
+    // socket receivers can prepend it directly
+    const post = await prisma.post.findUnique({
+      where: { id: created.id },
+      include: {
+        author: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+        _count: { select: { likes: true, comments: true } },
+      },
+    });
+
+    safeEmit("feed", "post:new", { post, actorId: req.user.userId });
     res.status(201).json({ message: "Post created successfully", post });
   } catch (err) {
     console.error(err);
@@ -315,6 +330,11 @@ exports.deletePost = async (req, res) => {
 
     const deletedPost = await prisma.post.delete({
       where: { id: parseInt(id) },
+    });
+
+    safeEmit("feed", "post:deleted", {
+      postId: parseInt(id),
+      actorId: req.user.userId,
     });
     res.json({ message: "Post deleted successfully", post: deletedPost });
   } catch (err) {

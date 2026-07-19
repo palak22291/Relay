@@ -18,12 +18,19 @@ import { useNavigate } from "react-router-dom";
 import axiosInstance from "../utils/axiosInstance";
 import PostCard from "../components/PostCard";
 import { getAvatarStyle } from "../utils/ui";
+import { useRealtimeFeed } from "../hooks/useRealtimeFeed";
+
+// append while deduping by id — live prepends can shift offset pages, so
+// "load more" may return posts we already have
+const mergeById = (prev, incoming) => {
+  const ids = new Set(prev.map((p) => p.id));
+  return [...prev, ...incoming.filter((p) => !ids.has(p.id))];
+};
 
 export default function Feed() {
   const navigate = useNavigate();
 
   const [posts, setPosts] = useState([]);
-  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [loadMoreLoading, setLoadMoreLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -33,9 +40,17 @@ export default function Feed() {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("newest"); // newest | oldest | mostCommented
 
-  // Real-time hook point: socket "post:new" events push here instead of
-  // yanking the scroll position. The pill flushes them on click.
+  // pagination state — cursor for the live feed, page for filtered views
+  const [nextCursor, setNextCursor] = useState(null);
+  const [page, setPage] = useState(1);
+
+  // posts delivered by the socket wait here until the pill is clicked
   const [queuedPosts, setQueuedPosts] = useState([]);
+
+  // Default view = cursor pagination on /posts/feed (correct under live
+  // prepends). Search/sort views use the offset endpoint, which supports
+  // those filters — live prepends don't apply to filtered views anyway.
+  const isDefaultView = sortBy === "newest" && search === "";
 
   const fetchCurrentUser = useCallback(async () => {
     try {
@@ -46,38 +61,74 @@ export default function Feed() {
     }
   }, []);
 
-  // memoized so the effects below can list it as a dependency —
-  // it only changes identity when search/sortBy change
-  const fetchPosts = useCallback(
-    async (pageNumber = 1, searchValue = search, sortValue = sortBy) => {
-      try {
-        pageNumber === 1 ? setLoading(true) : setLoadMoreLoading(true);
-
+  const fetchFirstPage = useCallback(async () => {
+    try {
+      setLoading(true);
+      setQueuedPosts([]); // fresh page 1 already contains anything queued
+      if (isDefaultView) {
+        const res = await axiosInstance.get("/posts/feed?limit=5");
+        setPosts(res.data.posts || []);
+        setNextCursor(res.data.nextCursor || null);
+        setHasMore(Boolean(res.data.nextCursor));
+      } else {
         const res = await axiosInstance.get(
-          `/posts?limit=5&page=${pageNumber}&search=${encodeURIComponent(searchValue)}&sortBy=${sortValue}`
+          `/posts?limit=5&page=1&search=${encodeURIComponent(search)}&sortBy=${sortBy}`
         );
-
         const newPosts = res.data.posts || [];
-        setPosts((prev) => (pageNumber === 1 ? newPosts : [...prev, ...newPosts]));
+        setPosts(newPosts);
         setHasMore(newPosts.length === 5);
-      } catch (err) {
-        console.error("Fetch posts failed:", err);
-      } finally {
-        setLoading(false);
-        setLoadMoreLoading(false);
       }
-    },
-    [search, sortBy]
-  );
+      setPage(1);
+    } catch (err) {
+      console.error("Fetch posts failed:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [isDefaultView, search, sortBy]);
+
+  const loadMore = useCallback(async () => {
+    try {
+      setLoadMoreLoading(true);
+      if (isDefaultView) {
+        if (!nextCursor) return;
+        const res = await axiosInstance.get(
+          `/posts/feed?limit=5&cursor=${encodeURIComponent(nextCursor)}`
+        );
+        setPosts((prev) => mergeById(prev, res.data.posts || []));
+        setNextCursor(res.data.nextCursor || null);
+        setHasMore(Boolean(res.data.nextCursor));
+      } else {
+        const next = page + 1;
+        const res = await axiosInstance.get(
+          `/posts?limit=5&page=${next}&search=${encodeURIComponent(search)}&sortBy=${sortBy}`
+        );
+        const newPosts = res.data.posts || [];
+        setPosts((prev) => mergeById(prev, newPosts));
+        setPage(next);
+        setHasMore(newPosts.length === 5);
+      }
+    } catch (err) {
+      console.error("Load more failed:", err);
+    } finally {
+      setLoadMoreLoading(false);
+    }
+  }, [isDefaultView, nextCursor, page, search, sortBy]);
 
   useEffect(() => {
     fetchCurrentUser();
   }, [fetchCurrentUser]);
 
   useEffect(() => {
-    setPage(1);
-    fetchPosts(1, search, sortBy);
-  }, [search, sortBy, fetchPosts]);
+    fetchFirstPage();
+  }, [fetchFirstPage]);
+
+  // live events: post:new → pill queue, post:deleted → drop, like:updated → patch
+  useRealtimeFeed({
+    currentUserId: currentUser?.userId,
+    setPosts,
+    setQueuedPosts,
+    refetch: fetchFirstPage,
+  });
 
   const flushQueue = () => {
     setPosts((prev) => {
@@ -115,7 +166,7 @@ export default function Feed() {
         </CardContent>
       </Card>
 
-      {/* New posts pill — shown when socket delivers new posts */}
+      {/* New posts pill — shown when sockets queue live posts */}
       {queuedPosts.length > 0 && (
         <Box sx={{ display: "flex", justifyContent: "center" }}>
           <Chip
@@ -184,17 +235,7 @@ export default function Feed() {
 
       {/* Load more */}
       {!loading && hasMore && posts.length > 0 && (
-        <Button
-          variant="outlined"
-          fullWidth
-          onClick={() => {
-            const next = page + 1;
-            setPage(next);
-            fetchPosts(next, search, sortBy);
-          }}
-          disabled={loadMoreLoading}
-          sx={{ mt: 1 }}
-        >
+        <Button variant="outlined" fullWidth onClick={loadMore} disabled={loadMoreLoading} sx={{ mt: 1 }}>
           {loadMoreLoading ? "Loading…" : "Load more"}
         </Button>
       )}

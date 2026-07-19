@@ -1,5 +1,5 @@
 // src/pages/PostDetails.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   Box,
   Card,
@@ -15,10 +15,15 @@ import {
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+import FavoriteIcon from "@mui/icons-material/Favorite";
+import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
+import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import { useParams, useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import axiosInstance from "../utils/axiosInstance";
 import { getAvatarStyle } from "../utils/ui";
+import { useRealtimeComments } from "../hooks/useRealtimeComments";
+import { useTypingIndicator } from "../hooks/useTypingIndicator";
 
 function CommentItem({ comment, currentUser, onUpdate, onDelete }) {
   const isOwner = currentUser?.userId === comment.authorId;
@@ -125,26 +130,74 @@ export default function PostDetails() {
   const [newComment, setNewComment] = useState("");
   const [posting, setPosting] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [liked, setLiked] = useState(false);
 
-  // Phase 5 (typing indicators) re-adds typingUser state here, set by
-  // socket "typing:start/stop" events — removed until then (dead code).
+  // typing indicator — emits on composer keystrokes, shows others' typing
+  const { typingUser, notifyTyping, stopTyping } = useTypingIndicator({
+    postId,
+    currentUserId: currentUser?.userId,
+    firstName: currentUser?.firstName,
+  });
+
+  const refetchComments = useCallback(() => {
+    return axiosInstance
+      .get(`/comments/${postId}`)
+      .then((r) => setComments(r.data.comments || []))
+      .catch(console.error);
+  }, [postId]);
 
   useEffect(() => {
     axiosInstance.get("/auth/me").then((r) => setCurrentUser(r.data.user)).catch(() => {});
     axiosInstance
       .get(`/posts/${postId}`)
-      .then((r) => setPost(r.data.post || r.data))
+      .then((r) => {
+        const p = r.data.post || r.data;
+        setPost(p);
+        setLiked((p.likes?.length || 0) > 0); // likedByMe from optional-auth include
+      })
       .catch(console.error)
       .finally(() => setLoadingPost(false));
-    axiosInstance
-      .get(`/comments/${postId}`)
-      .then((r) => setComments(r.data.comments || []))
-      .catch(console.error)
-      .finally(() => setLoadingComments(false));
-  }, [postId]);
+    refetchComments().finally(() => setLoadingComments(false));
+  }, [postId, refetchComments]);
+
+  // live like:updated for THIS post — adopt the server's absolute count
+  const onLikeUpdated = useCallback(({ likeCount }) => {
+    setPost((prev) =>
+      prev ? { ...prev, _count: { ...prev._count, likes: likeCount } } : prev
+    );
+  }, []);
+
+  // join post room; stream comment + like events while the page is open
+  useRealtimeComments({
+    postId,
+    currentUserId: currentUser?.userId,
+    setComments,
+    onLikeUpdated,
+    refetch: refetchComments,
+  });
+
+  const handleLike = async () => {
+    if (!post) return;
+    const prevLiked = liked;
+    const prevCount = post._count?.likes || 0;
+    setLiked(!prevLiked);
+    onLikeUpdated({ likeCount: prevCount + (prevLiked ? -1 : 1) });
+    try {
+      const res = await axiosInstance.post(`/likes/toggle/${post.id}`);
+      if (res.data?.likeCount !== undefined) {
+        setLiked(res.data.liked);
+        onLikeUpdated({ likeCount: res.data.likeCount });
+      }
+    } catch (err) {
+      setLiked(prevLiked);
+      onLikeUpdated({ likeCount: prevCount });
+      console.error("Like failed:", err);
+    }
+  };
 
   const addComment = async () => {
     if (!newComment.trim()) return;
+    stopTyping(); // clear the indicator for others immediately
     try {
       setPosting(true);
       const res = await axiosInstance.post(`/comments/create/${postId}`, {
@@ -245,6 +298,38 @@ export default function PostDetails() {
               sx={{ width: "100%", borderRadius: "10px", mt: 1.5, display: "block" }}
             />
           )}
+
+          {/* action row — like count stays live via like:updated */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 1.5 }}>
+            <Button
+              size="small"
+              startIcon={liked ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+              onClick={handleLike}
+              sx={{
+                color: liked ? "primary.main" : "text.disabled",
+                backgroundColor: liked ? "primary.light" : "transparent",
+                borderRadius: "8px",
+                px: 1,
+                "& .MuiButton-startIcon": { mr: 0.5 },
+              }}
+            >
+              {post._count?.likes || 0}
+            </Button>
+            <Button
+              size="small"
+              startIcon={<ChatBubbleOutlineIcon />}
+              disabled
+              sx={{
+                color: "text.disabled",
+                borderRadius: "8px",
+                px: 1,
+                "& .MuiButton-startIcon": { mr: 0.5 },
+                "&.Mui-disabled": { color: "text.disabled" },
+              }}
+            >
+              {comments.length}
+            </Button>
+          </Box>
         </CardContent>
       </Card>
 
@@ -256,8 +341,10 @@ export default function PostDetails() {
             multiline
             placeholder="Write a comment..."
             value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            // Real-time hook point: emit typing:start (throttled) here
+            onChange={(e) => {
+              setNewComment(e.target.value);
+              notifyTyping();
+            }}
           />
           <Button
             variant="contained"
@@ -279,6 +366,11 @@ export default function PostDetails() {
         <Typography sx={{ fontSize: "12px", color: "text.disabled" }}>
           {comments.length}
         </Typography>
+        {typingUser && (
+          <Typography sx={{ fontSize: "12px", color: "primary.main", ml: "auto" }}>
+            {typingUser} is typing…
+          </Typography>
+        )}
       </Box>
 
       <Card>

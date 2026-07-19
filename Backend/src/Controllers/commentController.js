@@ -1,4 +1,5 @@
 const { prisma } = require("../../prisma/client");
+const { safeEmit } = require("../socket");
 
 exports.createComment = async (req, res) => {
   try {
@@ -26,6 +27,11 @@ exports.createComment = async (req, res) => {
       },
     });
 
+    // comment already includes author — receivers can render it directly
+    safeEmit(`post:${parseInt(postId)}`, "comment:new", {
+      comment,
+      actorId: userId,
+    });
     res.status(201).json({ message: "Comment added successfully", comment });
   } catch (err) {
     console.error(err);
@@ -72,6 +78,11 @@ exports.deleteComment = async (req, res) => {
     }
 
     await prisma.comment.delete({ where: { id: parseInt(commentId) } });
+
+    safeEmit(`post:${existingComment.postId}`, "comment:deleted", {
+      commentId: parseInt(commentId),
+      actorId: userId,
+    });
     res.json({ message: "Comment deleted successfully" });
   } catch (err) {
     console.error(err);
@@ -110,6 +121,11 @@ exports.updateComment = async (req, res) => {
       data: { content },
     });
 
+    safeEmit(`post:${existingComment.postId}`, "comment:updated", {
+      commentId: updatedComment.id,
+      content: updatedComment.content,
+      actorId: userId,
+    });
     res.json({
       message: "Comment updated successfully",
       updatedComment,
