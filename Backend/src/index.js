@@ -28,6 +28,10 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 const app = express();
+// Render (and any proxy host) forwards traffic — without this, req.ip is the
+// proxy's address, so ALL users share one rate-limit bucket and a handful of
+// page loads can 429 the whole site.
+app.set("trust proxy", 1);
 app.use(helmet());
 app.use(
     cors({
