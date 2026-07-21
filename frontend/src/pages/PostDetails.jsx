@@ -24,6 +24,7 @@ import axiosInstance from "../utils/axiosInstance";
 import { getAvatarStyle } from "../utils/ui";
 import { useRealtimeComments } from "../hooks/useRealtimeComments";
 import { useTypingIndicator } from "../hooks/useTypingIndicator";
+import { useCurrentUser } from "../context/CurrentUserContext";
 
 function CommentItem({ comment, currentUser, onUpdate, onDelete }) {
   const isOwner = currentUser?.userId === comment.authorId;
@@ -129,7 +130,7 @@ export default function PostDetails() {
   const [loadingComments, setLoadingComments] = useState(true);
   const [newComment, setNewComment] = useState("");
   const [posting, setPosting] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
+  const { currentUser } = useCurrentUser();
   const [liked, setLiked] = useState(false);
 
   // typing indicator — emits on composer keystrokes, shows others' typing
@@ -147,7 +148,6 @@ export default function PostDetails() {
   }, [postId]);
 
   useEffect(() => {
-    axiosInstance.get("/auth/me").then((r) => setCurrentUser(r.data.user)).catch(() => {});
     axiosInstance
       .get(`/posts/${postId}`)
       .then((r) => {

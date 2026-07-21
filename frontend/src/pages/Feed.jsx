@@ -19,6 +19,7 @@ import axiosInstance from "../utils/axiosInstance";
 import PostCard from "../components/PostCard";
 import { getAvatarStyle } from "../utils/ui";
 import { useRealtimeFeed } from "../hooks/useRealtimeFeed";
+import { useCurrentUser } from "../context/CurrentUserContext";
 
 // append while deduping by id — live prepends can shift offset pages, so
 // "load more" may return posts we already have
@@ -35,7 +36,7 @@ export default function Feed() {
   const [loadMoreLoading, setLoadMoreLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [loadError, setLoadError] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
+  const { currentUser } = useCurrentUser();
 
   const [typedSearch, setTypedSearch] = useState("");
   const [search, setSearch] = useState("");
@@ -52,15 +53,6 @@ export default function Feed() {
   // prepends). Search/sort views use the offset endpoint, which supports
   // those filters — live prepends don't apply to filtered views anyway.
   const isDefaultView = sortBy === "newest" && search === "";
-
-  const fetchCurrentUser = useCallback(async () => {
-    try {
-      const res = await axiosInstance.get("/auth/me");
-      setCurrentUser(res.data.user);
-    } catch {
-      setCurrentUser(null);
-    }
-  }, []);
 
   const fetchFirstPage = useCallback(async () => {
     try {
@@ -118,10 +110,6 @@ export default function Feed() {
       setLoadMoreLoading(false);
     }
   }, [isDefaultView, nextCursor, page, search, sortBy]);
-
-  useEffect(() => {
-    fetchCurrentUser();
-  }, [fetchCurrentUser]);
 
   useEffect(() => {
     fetchFirstPage();

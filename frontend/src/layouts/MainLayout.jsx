@@ -1,5 +1,5 @@
 // src/layouts/MainLayout.jsx
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   AppBar,
   Toolbar,
@@ -18,9 +18,9 @@ import AddIcon from "@mui/icons-material/Add";
 import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
 import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 import { useNavigate } from "react-router-dom";
-import axiosInstance from "../utils/axiosInstance";
 import { getInitials, getAvatarStyle } from "../utils/ui";
 import { useColorMode } from "../App";
+import { useCurrentUser } from "../context/CurrentUserContext";
 
 // Warm rounded-square nav icon (Relay spec)
 const navIconSx = {
@@ -34,18 +34,12 @@ const navIconSx = {
 export default function MainLayout({ children }) {
   const navigate = useNavigate();
   const { mode, toggleMode } = useColorMode();
-  const [user, setUser] = useState(null);
+  const { currentUser: user, refresh } = useCurrentUser();
   const [anchorEl, setAnchorEl] = useState(null);
-
-  useEffect(() => {
-    axiosInstance
-      .get("/auth/me")
-      .then((res) => setUser(res.data.user))
-      .catch(() => setUser(null));
-  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("authToken");
+    refresh(); // drop the cached identity immediately, don't wait for a route effect
     navigate("/login");
   };
 
