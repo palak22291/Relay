@@ -1,8 +1,28 @@
 const { OAuth2Client } = require("google-auth-library");
 const { prisma } = require("../../prisma/client.js");
 const { generateToken } = require("../Utils/jwt");
+const { normalise } = require("../config/validateEnv");
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+// read fresh + normalised at call time: a stray space/newline/quote pasted into
+// a hosting dashboard is the usual cause of "audience mismatch" when the value
+// looks identical to the frontend's
+const clientId = () =>
+  process.env.GOOGLE_CLIENT_ID ? normalise(process.env.GOOGLE_CLIENT_ID) : "";
+
+const client = new OAuth2Client(clientId());
+
+// Read a JWT's payload WITHOUT verifying it — diagnostics only, never trusted
+// for auth decisions. Used to report which client id the token was issued for.
+function peekAudience(idToken) {
+  try {
+    const payload = JSON.parse(
+      Buffer.from(String(idToken).split(".")[1], "base64").toString("utf8")
+    );
+    return payload.aud;
+  } catch {
+    return null;
+  }
+}
 
 exports.googleAuth = async (req, res) => {
   try {
@@ -22,7 +42,7 @@ exports.googleAuth = async (req, res) => {
 
     const ticket = await client.verifyIdToken({
       idToken: token,
-      audience: process.env.GOOGLE_CLIENT_ID,
+      audience: clientId(),
     });
 
     const payload = ticket.getPayload();
@@ -61,11 +81,21 @@ exports.googleAuth = async (req, res) => {
     console.error("Google Auth Error:", err.message);
 
     // an audience mismatch means the server's GOOGLE_CLIENT_ID differs from
-    // the one the frontend used — the single most common deploy misconfig
-    if (/audience/i.test(err.message || "")) {
+    // the one the frontend used — the single most common deploy misconfig.
+    // Log BOTH values (client ids are public) so the difference is obvious,
+    // including invisible characters.
+    if (/audience|recipient/i.test(err.message || "")) {
+      const expected = clientId();
+      const actual = peekAudience(req.body?.token);
+      console.error("Google Auth: audience mismatch");
+      console.error(`  server expects : [${expected}] (len ${expected.length})`);
+      console.error(
+        `  token issued to: [${actual ?? "unreadable"}]` +
+          (actual ? ` (len ${String(actual).length})` : "")
+      );
       return res.status(500).json({
         error:
-          "Google sign-in misconfigured: server's GOOGLE_CLIENT_ID doesn't match the app's",
+          "Google sign-in misconfigured: this server's GOOGLE_CLIENT_ID doesn't match the one the app signed in with",
       });
     }
     if (/expired/i.test(err.message || "")) {
