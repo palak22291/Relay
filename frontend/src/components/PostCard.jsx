@@ -75,10 +75,30 @@ export default function PostCard({ post, onDelete, user }) {
 
   const avatarStyle = getAvatarStyle(post.author?.id);
 
+  const openPost = () => navigate(`/post/${post.id}`);
+
   return (
     <Card sx={{ mb: 0 }}>
-      {/* Header */}
-      <CardContent sx={{ pb: 0 }}>
+      {/* Header + body open the post for ANYONE (ownership only gates the
+          edit/delete menu below). The action row is a sibling, so like /
+          comment / share never trigger navigation. */}
+      <CardContent
+        onClick={openPost}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            openPost();
+          }
+        }}
+        role="link"
+        tabIndex={0}
+        aria-label={`Open post: ${post.title}`}
+        sx={{
+          pb: 0,
+          cursor: "pointer",
+          "&:focus-visible": { outline: "2px solid", outlineColor: "primary.main", outlineOffset: "-2px" },
+        }}
+      >
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.5 }}>
           <Avatar
             sx={{
@@ -99,14 +119,43 @@ export default function PostCard({ post, onDelete, user }) {
               {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
             </Typography>
           </Box>
+          {/* owner-only: edit/delete. Every handler stops propagation so it
+              never also triggers the card's open-post click (MUI renders the
+              Menu in a portal, but React events still bubble up the tree). */}
           {isOwner && (
             <>
-              <IconButton size="small" onClick={(e) => setMenuEl(e.currentTarget)}>
+              <IconButton
+                size="small"
+                aria-label="post options"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMenuEl(e.currentTarget);
+                }}
+              >
                 <MoreHorizIcon sx={{ fontSize: 18 }} />
               </IconButton>
-              <Menu anchorEl={menuEl} open={Boolean(menuEl)} onClose={() => setMenuEl(null)}>
-                <MenuItem onClick={() => navigate(`/edit/${post.id}`)}>Edit</MenuItem>
-                <MenuItem onClick={handleDelete} disabled={deleting} sx={{ color: "error.main" }}>
+              <Menu
+                anchorEl={menuEl}
+                open={Boolean(menuEl)}
+                onClose={() => setMenuEl(null)}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/edit/${post.id}`);
+                  }}
+                >
+                  Edit
+                </MenuItem>
+                <MenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete();
+                  }}
+                  disabled={deleting}
+                  sx={{ color: "error.main" }}
+                >
                   Delete
                 </MenuItem>
               </Menu>
