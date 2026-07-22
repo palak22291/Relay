@@ -38,6 +38,25 @@ const createCommentSchema = z.object({
   content: z.string().trim().min(1, "Content is required"),
 });
 
+// ─── Chat ───────────────────────────────────────────────────────────────
+
+const createConversationSchema = z.object({
+  // the requester is added server-side from the JWT, never trusted from the body
+  participantIds: z
+    .array(z.number().int().positive("Participant ids must be positive integers"))
+    .min(1, "At least one other participant is required"),
+  name: z.string().trim().min(1).max(100).optional(), // group name
+  isGroup: z.boolean().optional(),
+});
+
+const sendMessageSchema = z.object({
+  content: z
+    .string()
+    .trim()
+    .min(1, "Message cannot be empty")
+    .max(2000, "Message cannot exceed 2000 characters"),
+});
+
 // Middleware factory: validates req.body, replaces it with the parsed
 // (trimmed) data, or responds 400 with the first validation message.
 const validate = (schema) => (req, res, next) => {
@@ -55,5 +74,7 @@ module.exports = {
   createPostSchema,
   updatePostSchema,
   createCommentSchema,
+  createConversationSchema,
+  sendMessageSchema,
   validate,
 };
