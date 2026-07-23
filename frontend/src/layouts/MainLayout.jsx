@@ -15,12 +15,14 @@ import {
 } from "@mui/material";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import AddIcon from "@mui/icons-material/Add";
+import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
 import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 import { useNavigate } from "react-router-dom";
 import { getInitials, getAvatarStyle } from "../utils/ui";
 import { useColorMode } from "../App";
 import { useCurrentUser } from "../context/CurrentUserContext";
+import { useConversations } from "../context/ConversationsContext";
 
 // Warm rounded-square nav icon (Relay spec)
 const navIconSx = {
@@ -35,6 +37,7 @@ export default function MainLayout({ children }) {
   const navigate = useNavigate();
   const { mode, toggleMode } = useColorMode();
   const { currentUser: user, refresh } = useCurrentUser();
+  const { totalUnread } = useConversations();
   const [anchorEl, setAnchorEl] = useState(null);
 
   const handleLogout = () => {
@@ -84,6 +87,31 @@ export default function MainLayout({ children }) {
             ) : (
               <DarkModeOutlinedIcon sx={{ fontSize: 18 }} />
             )}
+          </IconButton>
+
+          {/* Messages — amber unread badge, live via ConversationsContext */}
+          <IconButton
+            onClick={() => navigate("/messages")}
+            sx={navIconSx}
+            aria-label={`Messages${totalUnread ? `, ${totalUnread} unread` : ""}`}
+          >
+            <Badge
+              badgeContent={totalUnread}
+              max={99}
+              overlap="circular"
+              sx={{
+                "& .MuiBadge-badge": {
+                  backgroundColor: "primary.main",
+                  color: "#1A0E00",
+                  fontWeight: 600,
+                  fontSize: "10px",
+                  minWidth: 16,
+                  height: 16,
+                },
+              }}
+            >
+              <ChatBubbleOutlineIcon sx={{ fontSize: 18 }} />
+            </Badge>
           </IconButton>
 
           {/* Bell — badge count wires to the notifications feature later */}

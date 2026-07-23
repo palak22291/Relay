@@ -11,7 +11,10 @@ import { ThemeProvider, CssBaseline } from "@mui/material";
 import { getTheme } from "./theme";
 import { SocketProvider } from "./context/SocketContext";
 import { CurrentUserProvider } from "./context/CurrentUserContext";
+import { ConversationsProvider } from "./context/ConversationsContext";
 import EditPost from "./pages/EditPost";
+import Messages from "./pages/Messages";
+import ChatWindow from "./pages/ChatWindow";
 
 // Dark/light toggle — consumed by MainLayout's navbar button
 const ColorModeContext = createContext({ mode: "dark", toggleMode: () => {} });
@@ -47,6 +50,7 @@ function App() {
         <CssBaseline />
         <SocketProvider>
         <CurrentUserProvider>
+        <ConversationsProvider>
         <Routes>
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
@@ -90,7 +94,28 @@ function App() {
               </RequireAuth>
             }
           />
+          <Route
+            path="/messages"
+            element={
+              <RequireAuth>
+                <MainLayout>
+                  <Messages />
+                </MainLayout>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/messages/:conversationId"
+            element={
+              <RequireAuth>
+                <MainLayout>
+                  <ChatWindow />
+                </MainLayout>
+              </RequireAuth>
+            }
+          />
         </Routes>
+        </ConversationsProvider>
         </CurrentUserProvider>
         </SocketProvider>
       </ThemeProvider>
