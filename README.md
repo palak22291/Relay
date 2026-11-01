@@ -2,7 +2,7 @@
 
 > Repo history and deployment names use the project's original name, **Connectify**.
 
-**Live demo:** [https://connectify-palaks-projects-63c6e26a.vercel.app](https://connectify-palaks-projects-63c6e26a.vercel.app)
+**Live demo:** [https://relay-palakgupta.vercel.app/](https://relay-palakgupta.vercel.app/)
 
 Relay is a full-stack social feed with live updates: new posts, comments, likes, and typing indicators stream to connected clients over WebSockets, while all writes stay on a validated REST API.
 
